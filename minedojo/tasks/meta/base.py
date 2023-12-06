@@ -14,7 +14,7 @@ from .utils import (
     reward_fn_base,
     extra_spawn_condition_base,
     always_satisfy_condition,
-    accomplishment_fn_base
+    accomplishment_fn_base,
 )
 
 
@@ -55,8 +55,8 @@ class MetaTaskBase(gym.Wrapper):
         self,
         *,
         fast_reset: bool = True,
-        fast_reset_random_teleport_range: Optional[int] = None,
-        no_daylight_cycle = True,
+        fast_reset_random_teleport_range: int = 100,
+        no_daylight_cycle=True,
         success_criteria: List[check_success_base],
         reward_fns: List[reward_fn_base],
         accomplishment_fns: List[accomplishment_fn_base],
@@ -69,12 +69,14 @@ class MetaTaskBase(gym.Wrapper):
         sim = MineDojoSim(**kwargs)
         self._fast_reset = fast_reset
         if fast_reset:
+            print(f"[INFO] Using fast reset: {fast_reset_random_teleport_range}")
             sim = FastResetWrapper(
-                sim, random_teleport_range=fast_reset_random_teleport_range,
-                random_teleport_agent = (fast_reset_random_teleport_range > 0),
-                no_daylight_cycle = no_daylight_cycle,
-                custom_commands = custom_commands,
-                force_slow_reset_interval = force_slow_reset_interval
+                sim,
+                random_teleport_range=fast_reset_random_teleport_range,
+                random_teleport_agent=(fast_reset_random_teleport_range > 0),
+                no_daylight_cycle=no_daylight_cycle,
+                custom_commands=custom_commands,
+                force_slow_reset_interval=force_slow_reset_interval,
             )
         # if multi_task_specs is not None:
         #     sim = MultiTaskWrapper(
@@ -99,15 +101,15 @@ class MetaTaskBase(gym.Wrapper):
 
     def get_success_vector(self):
         return [
-                check_success(
-                    ini_info_dict=self._ini_info_dict,
-                    cur_info_dict=self._pre_info_dict,
-                    elapsed_timesteps=self._elapsed_timesteps,
-                )
-                for check_success in self._success_criteria
-            ] # add for check multi-item whether has been done.
+            check_success(
+                ini_info_dict=self._ini_info_dict,
+                cur_info_dict=self._pre_info_dict,
+                elapsed_timesteps=self._elapsed_timesteps,
+            )
+            for check_success in self._success_criteria
+        ]  # add for check multi-item whether has been done.
 
-    def reset(self, updated_reward_fns = None, updated_success_criteria = None, **kwargs):
+    def reset(self, updated_reward_fns=None, updated_success_criteria=None, **kwargs):
         """Resets the environment to an initial state and returns an initial observation.
 
         Return:
@@ -162,7 +164,7 @@ class MetaTaskBase(gym.Wrapper):
             ini_info=self._ini_info_dict,
             cur_info=info,
             elapsed_timesteps=self._elapsed_timesteps,
-            need_all_success=self.need_all_success
+            need_all_success=self.need_all_success,
         )
         # self._success_vector = [
         #             check_success(
@@ -234,33 +236,49 @@ class MetaTaskBase(gym.Wrapper):
         )
 
     def _determine_success_hook(
-        self, ini_info: Dict[str, Any], cur_info: Dict[str, Any], elapsed_timesteps: int, need_all_success: bool = True
+        self,
+        ini_info: Dict[str, Any],
+        cur_info: Dict[str, Any],
+        elapsed_timesteps: int,
+        need_all_success: bool = True,
     ) -> bool:
         if need_all_success:
-            return False if len(self._success_criteria) == 0 else all(
-                [
-                    check_success(
-                        ini_info_dict=ini_info,
-                        cur_info_dict=cur_info,
-                        elapsed_timesteps=elapsed_timesteps,
-                    )
-                    for check_success in self._success_criteria
-                ]
+            return (
+                False
+                if len(self._success_criteria) == 0
+                else all(
+                    [
+                        check_success(
+                            ini_info_dict=ini_info,
+                            cur_info_dict=cur_info,
+                            elapsed_timesteps=elapsed_timesteps,
+                        )
+                        for check_success in self._success_criteria
+                    ]
+                )
             )
         else:
-            return False if len(self._success_criteria) == 0 else any(
-                [
-                    check_success(
-                        ini_info_dict=ini_info,
-                        cur_info_dict=cur_info,
-                        elapsed_timesteps=elapsed_timesteps,
-                    )
-                    for check_success in self._success_criteria
-                ]
+            return (
+                False
+                if len(self._success_criteria) == 0
+                else any(
+                    [
+                        check_success(
+                            ini_info_dict=ini_info,
+                            cur_info_dict=cur_info,
+                            elapsed_timesteps=elapsed_timesteps,
+                        )
+                        for check_success in self._success_criteria
+                    ]
+                )
             )
-    
+
     def _get_accomplishments_hook(
-        self, ini_info: Dict[str, Any], pre_info: Dict[str, Any], cur_info: Dict[str, Any], elapsed_timesteps: int
+        self,
+        ini_info: Dict[str, Any],
+        pre_info: Dict[str, Any],
+        cur_info: Dict[str, Any],
+        elapsed_timesteps: int,
     ) -> List[str]:
         accomplishments = []
         for accomplishment_fn in self._accomplishment_fns:
@@ -268,7 +286,7 @@ class MetaTaskBase(gym.Wrapper):
                 ini_info_dict=ini_info,
                 pre_info_dict=pre_info,
                 cur_info_dict=cur_info,
-                elapsed_timesteps=elapsed_timesteps
+                elapsed_timesteps=elapsed_timesteps,
             )
 
         return accomplishments
@@ -313,8 +331,12 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
         self,
         *,
         initial_mobs: Optional[Union[str, List[str]]] = None,
-        initial_mob_spawn_range_low: Optional[Union[Tuple[int, int, int], List[Tuple[int, int, int]]]] = None,
-        initial_mob_spawn_range_high: Optional[Union[Tuple[int, int, int], List[Tuple[int, int, int]]]] = None,
+        initial_mob_spawn_range_low: Optional[
+            Union[Tuple[int, int, int], List[Tuple[int, int, int]]]
+        ] = None,
+        initial_mob_spawn_range_high: Optional[
+            Union[Tuple[int, int, int], List[Tuple[int, int, int]]]
+        ] = None,
         random_shuffle_spawn_range: bool = False,
         extra_spawn_rate: Optional[Dict[str, float]] = None,
         extra_spawn_condition: Optional[
@@ -326,7 +348,7 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
         fast_reset_random_teleport_range: Optional[int] = None,
         success_criteria: List[check_success_base],
         reward_fns: List[reward_fn_base],
-        accomplishment_fns: List[accomplishment_fn_base],
+        accomplishment_fns: List[accomplishment_fn_base] = [],
         need_all_success: Optional[bool] = None,
         custom_commands: Optional[List] = None,
         **kwargs,
@@ -401,10 +423,14 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
             initial_mobs = [initial_mobs]
         self._initial_mobs = initial_mobs
         self._random_shuffle_spawn_range = random_shuffle_spawn_range
+
         if len(initial_mobs) > 0:
-            if isinstance(initial_mob_spawn_range_low, Tuple):
-                assert len(initial_mob_spawn_range_low) == 3
-                assert len(initial_mob_spawn_range_high) == 3
+            if (
+                isinstance(initial_mob_spawn_range_low, tuple)
+                or isinstance(initial_mob_spawn_range_low, list)
+                and len(initial_mob_spawn_range_low) == 3
+                and len(initial_mob_spawn_range_high) == 3
+            ):
                 low = np.repeat(
                     np.array(initial_mob_spawn_range_low)[np.newaxis, ...],
                     len(initial_mobs),
@@ -415,12 +441,14 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
                     len(initial_mobs),
                     axis=0,
                 )
-                self._mob_spawn_range_spaces = [gym.spaces.Box(
-                    low=low, high=high, seed=kwargs["seed"]
-                )]
-            elif isinstance(initial_mob_spawn_range_low, List):
+                self._mob_spawn_range_spaces = [
+                    gym.spaces.Box(low=low, high=high, seed=kwargs["seed"])
+                ]
+            elif isinstance(initial_mob_spawn_range_low, list):
                 self._mob_spawn_range_spaces = []
-                for range_low, range_high in zip(initial_mob_spawn_range_low, initial_mob_spawn_range_high):
+                for range_low, range_high in zip(
+                    initial_mob_spawn_range_low, initial_mob_spawn_range_high
+                ):
                     low = np.repeat(
                         np.array(range_low)[np.newaxis, ...],
                         len(initial_mobs),
@@ -431,9 +459,9 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
                         len(initial_mobs),
                         axis=0,
                     )
-                    self._mob_spawn_range_spaces.append(gym.spaces.Box(
-                        low=low, high=high, seed=kwargs["seed"]
-                    ))
+                    self._mob_spawn_range_spaces.append(
+                        gym.spaces.Box(low=low, high=high, seed=kwargs["seed"])
+                    )
 
     def step(self, action):
         if self._extra_spawn_rate is None:
@@ -466,7 +494,9 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
                 mobs_rel_positions = np.zeros([len(self._initial_mobs), 3])
                 m = np.random.permutation(len(self._initial_mobs))
                 for i in range(len(self._initial_mobs)):
-                    mobs_rel_positions[i,:] = self._mob_spawn_range_spaces[m[i]].sample()[0,:]
+                    mobs_rel_positions[i, :] = self._mob_spawn_range_spaces[
+                        m[i]
+                    ].sample()[0, :]
 
             obs, _, _, info = self.env.spawn_mobs(
                 self._initial_mobs, mobs_rel_positions

@@ -11,9 +11,8 @@ from ....sim.inventory import InventoryItem
 
 
 class HumanActionSpaceWrapper(gym.Wrapper):
-    
     def __init__(
-        self, 
+        self,
         env: Union[MineDojoSim, gym.Wrapper],
         discretized_camera_interval: Union[int, float] = 15,
         strict_check: bool = True,
@@ -21,7 +20,7 @@ class HumanActionSpaceWrapper(gym.Wrapper):
         pass
 
 
-class CameraQuantizer():
+class CameraQuantizer:
     """
     A camera quantizer that discretizes and undiscretizes a continuous camera input with y (pitch) and x (yaw) components.
     Parameters:
@@ -44,7 +43,10 @@ class CameraQuantizer():
     maxval = 40 | max_precision = 0.4  | μ ≈ 4.21554
     maxval = 40 | max_precision = 0.25 | μ ≈ 9.81152
     """
-    def __init__(self, camera_maxval = 10, camera_binsize = 2, quantization_scheme = "mu_law", mu = 10):
+
+    def __init__(
+        self, camera_maxval=10, camera_binsize=2, quantization_scheme="mu_law", mu=10
+    ):
         self.camera_maxval = camera_maxval
         self.camera_binsize = camera_binsize
         self.quantization_scheme = quantization_scheme
@@ -55,19 +57,25 @@ class CameraQuantizer():
 
         if self.quantization_scheme == "mu_law":
             xy = xy / self.camera_maxval
-            v_encode = np.sign(xy) * (np.log(1.0 + self.mu * np.abs(xy)) / np.log(1.0 + self.mu))
+            v_encode = np.sign(xy) * (
+                np.log(1.0 + self.mu * np.abs(xy)) / np.log(1.0 + self.mu)
+            )
             v_encode *= self.camera_maxval
             xy = v_encode
 
         # Quantize using linear scheme
-        return np.round((xy + self.camera_maxval) / self.camera_binsize).astype(np.int64)
+        return np.round((xy + self.camera_maxval) / self.camera_binsize).astype(
+            np.int64
+        )
 
     def undiscretize(self, xy):
         xy = xy * self.camera_binsize - self.camera_maxval
 
         if self.quantization_scheme == "mu_law":
             xy = xy / self.camera_maxval
-            v_decode = np.sign(xy) * (1.0 / self.mu) * ((1.0 + self.mu) ** np.abs(xy) - 1.0)
+            v_decode = (
+                np.sign(xy) * (1.0 / self.mu) * ((1.0 + self.mu) ** np.abs(xy) - 1.0)
+            )
             v_decode *= self.camera_maxval
             xy = v_decode
         return xy
@@ -83,16 +91,16 @@ class NNActionSpaceWrapper(gym.Wrapper):
         env: Union[MineDojoSim, gym.Wrapper],
         discretized_camera_interval: Union[int, float] = 15,
         strict_check: bool = False,
-        use_minerl_camera_view = True
+        use_minerl_camera_view=True,
     ):
-        # assert (
-        #     "equip" in env.action_space.keys()
-        #     and "place" in env.action_space.keys()
-        #     and "swap_slot" not in env.action_space.keys()
-        # ), "please use this wrapper with event_level_control = True"
-        # assert (
-        #     "inventory" in env.observation_space.keys()
-        # ), f"missing inventory from obs space"
+        assert (
+            "equip" in list(env.action_space.keys())
+            and "place" in list(env.action_space.keys())
+            and "swap_slot" not in list(env.action_space.keys())
+        ), "please use this wrapper with event_level_control = True"
+        assert "inventory" in list(
+            env.observation_space.keys()
+        ), "missing inventory from obs space"
         super().__init__(env=env)
 
         self.MINERL_ACTION_TRANSFORMER_KWARGS = dict(
@@ -104,13 +112,20 @@ class NNActionSpaceWrapper(gym.Wrapper):
 
         self.use_minerl_camera_view = use_minerl_camera_view
         if use_minerl_camera_view:
-            n_pitch_bins = self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_maxval"] // self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_binsize"] * 2 + 1
+            n_pitch_bins = (
+                self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_maxval"]
+                // self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_binsize"]
+                * 2
+                + 1
+            )
             n_yaw_bins = n_pitch_bins
             self.camview_quantizer = CameraQuantizer(
-                camera_maxval = self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_maxval"],
-                camera_binsize = self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_binsize"],
-                quantization_scheme = self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_quantization_scheme"],
-                mu = self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_mu"]
+                camera_maxval=self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_maxval"],
+                camera_binsize=self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_binsize"],
+                quantization_scheme=self.MINERL_ACTION_TRANSFORMER_KWARGS[
+                    "camera_quantization_scheme"
+                ],
+                mu=self.MINERL_ACTION_TRANSFORMER_KWARGS["camera_mu"],
             )
         else:
             n_pitch_bins = math.ceil(360 / discretized_camera_interval) + 1
@@ -142,7 +157,9 @@ class NNActionSpaceWrapper(gym.Wrapper):
         self._inventory_names = None
         self._strict_check = strict_check
 
-    def action(self, action: Sequence[int], delta_camera_view: Optional[Sequence[float]] = None):
+    def action(
+        self, action: Sequence[int], delta_camera_view: Optional[Sequence[float]] = None
+    ):
         """
         NN action to Malmo action
         """
@@ -364,7 +381,9 @@ class NNActionSpaceWrapper(gym.Wrapper):
         else:
             delta_camera_view = None
 
-        malmo_action, destroy_item = self.action(action, delta_camera_view = delta_camera_view)
+        malmo_action, destroy_item = self.action(
+            action, delta_camera_view=delta_camera_view
+        )
         destroy_item, destroy_slot = destroy_item
         if destroy_item:
             obs, reward, done, info = self.env.set_inventory(

@@ -26,9 +26,9 @@ class DeltaInventoryWrapper(gym.Wrapper):
         default_item_name: str = "air",
         **kwargs
     ):
-        assert "inventory" in env.observation_space.keys()
-        assert "masks" in env.observation_space.keys()
-        assert "craft_smelt" in env.observation_space["masks"].keys()
+        assert "inventory" in list(env.observation_space.keys())
+        assert "masks" in list(env.observation_space.keys())
+        assert "craft_smelt" in list(env.observation_space["masks"].keys())
         assert isinstance(
             env.action_space, spaces.MultiDiscrete
         ), "please use this wrapper with `NNActionSpaceWrapper!`"
@@ -84,7 +84,9 @@ class DeltaInventoryWrapper(gym.Wrapper):
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        new_obs = self.observation(observation, action["action"] if isinstance(action, dict) else action)
+        new_obs = self.observation(
+            observation, action["action"] if isinstance(action, dict) else action
+        )
         self._prev_inventory = deepcopy(observation["inventory"])
         self._prev_mask = deepcopy(observation["masks"]["craft_smelt"])
         return new_obs, reward, done, info
@@ -190,11 +192,12 @@ class DeltaInventoryWrapper(gym.Wrapper):
                 else:
                     item_name_to_craft = MC.ALL_CRAFT_SMELT_ITEMS[craft_idx]
                     item_idx_to_craft = MC.ALL_ITEMS.index(item_name_to_craft)
-                    crit = bool(self._prev_mask[craft_idx]) if self._prev_mask is not None else False
-                    if (
-                        crit is True
-                        and item_idx_to_craft in increment_indices
-                    ):
+                    crit = (
+                        bool(self._prev_mask[craft_idx])
+                        if self._prev_mask is not None
+                        else False
+                    )
+                    if crit is True and item_idx_to_craft in increment_indices:
                         delta_obs.update(
                             {
                                 "inc_name_by_craft": np.concatenate(
@@ -317,10 +320,14 @@ class DeltaInventoryWrapper(gym.Wrapper):
                     )
                 else:
                     ingredients_indices = np.flatnonzero(self._recipes[craft_idx] > 0)
-                    crit = bool(self._prev_mask[craft_idx]) if self._prev_mask is not None else False
-                    if crit is True and set(
-                        ingredients_indices
-                    ).issubset(set(decrement_indices)):
+                    crit = (
+                        bool(self._prev_mask[craft_idx])
+                        if self._prev_mask is not None
+                        else False
+                    )
+                    if crit is True and set(ingredients_indices).issubset(
+                        set(decrement_indices)
+                    ):
                         delta_obs.update(
                             {
                                 "dec_name_by_craft": np.concatenate(

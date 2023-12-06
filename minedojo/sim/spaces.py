@@ -358,7 +358,7 @@ class Dict(gym.spaces.Dict, MineRLSpace):
         try:
             batch_shape = ()
 
-            for (k, v) in self.spaces.items():
+            for k, v in self.spaces.items():
                 if k in x and v.is_flattenable():
                     # Get batch_shape from x[k]
                     if not hasattr(x[k], "shape"):
@@ -377,7 +377,7 @@ class Dict(gym.spaces.Dict, MineRLSpace):
                         pass
 
             stuff_to_cat = []
-            for (k, v) in self.spaces.items():
+            for k, v in self.spaces.items():
                 if v.is_flattenable():
                     stuff_to_cat.append(
                         (
@@ -490,7 +490,7 @@ class MultiDiscrete(gym.spaces.MultiDiscrete, MineRLSpace):
     def sample(self, bs=None):
         bdim = () if bs is None else (bs,)
         return (
-            self.np_random.random_sample(bdim + self.nvec.shape) * self.nvec
+            self.np_random.random_sample(*(bdim + self.nvec.shape)) * self.nvec
         ).astype(self.dtype)
 
 

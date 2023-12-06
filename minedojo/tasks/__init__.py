@@ -27,7 +27,7 @@ _logger.addHandler(_stream_handler)
 
 
 def _resource_file_path(fname) -> str:
-    with importlib_resources.path("minedojo.tasks.description_files", fname) as p:
+    with importlib_resources.files("minedojo.tasks.description_files") / fname as p:
         return str(p)
 
 
@@ -72,12 +72,13 @@ def _meta_task_make(meta_task: str, *args, **kwargs) -> MetaTaskBase | FastReset
         if "fast_reset" in kwargs:
             fast_reset = kwargs.pop("fast_reset")
             fast_reset_random_teleport_range = kwargs.pop(
-                "fast_reset_random_teleport_range", None
+                "fast_reset_random_teleport_range", 100
             )
             if fast_reset is True:
                 return FastResetWrapper(
                     MineDojoSim(*args, **kwargs), fast_reset_random_teleport_range
                 )
+    print(f"Making meta task {meta_task}, args: {args}, kwargs: {kwargs}")
     return MetaTaskName2Class[meta_task](*args, **kwargs)
 
 
@@ -381,6 +382,8 @@ for task_id, task_specs in _ALL_TASKS_SPECS_UNFILLED.items():
     def _recursive_find_unfilled_vars(x):
         if OmegaConf.is_dict(x):
             return {k: _recursive_find_unfilled_vars(v) for k, v in x.items()}
+        if OmegaConf.is_list(x):
+            return list(x)
         elif isinstance(x, str):
             unfilled_vars.extend(re.findall(r"\{(.*?)\}", x))
         return x
@@ -400,6 +403,8 @@ for task_id, task_specs in _ALL_TASKS_SPECS_UNFILLED.items():
             def _recursive_replace_var(x):
                 if OmegaConf.is_dict(x):
                     return {k: _recursive_replace_var(v) for k, v in x.items()}
+                if OmegaConf.is_list(x):
+                    return list(x)
                 elif isinstance(x, str):
                     return x.format(**var_dict)
                 return x
@@ -535,7 +540,5 @@ def make(task_id: str, *args, cam_interval: int | float = 15, **kwargs):
         raise ValueError(f"Invalid task id provided {task_id}")
     env = ARNNWrapper(env_obj, cam_interval=cam_interval)
     if "multi_task_specs" in kwargs.keys() and kwargs["multi_task_specs"] is not None:
-        env = MultiTaskWrapper(
-            env, kwargs["multi_task_specs"]
-        )
+        env = MultiTaskWrapper(env, kwargs["multi_task_specs"])
     return env

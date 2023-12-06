@@ -158,7 +158,7 @@ class CombatMeta(ExtraSpawnMetaTaskBase):
         world_seed: Optional[str] = None,
         # ------ reset mode ------
         fast_reset: bool = True,
-        fast_reset_random_teleport_range: Optional[int] = None,
+        fast_reset_random_teleport_range: int = 100,
         # ------ obs ------
         image_size: Union[int, Tuple[int, int]],
         use_voxel: bool = False,

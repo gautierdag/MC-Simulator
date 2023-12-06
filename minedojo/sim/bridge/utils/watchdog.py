@@ -66,7 +66,7 @@ def reap_process_and_children(process, timeout=5):
         logger.info("Process {} terminated with exit code {}".format(proc, returncode))
 
     def get_process_info(proc):
-        return f"{proc.pid}:{proc.name()}:{proc.exe()} i {proc.status()}, owner {proc.ppid()}"
+        return f"{proc.pid}:{proc.name()}:i {proc.status()}, owner {proc.ppid()}"
 
     procs = process.children(recursive=True)[::-1] + [process]
     try:

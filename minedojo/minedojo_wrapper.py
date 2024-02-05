@@ -24,6 +24,8 @@ class MineDojoEnv(gym.Env):
         name=None,
         img_size=(640, 480),
         rgb_only=False,
+        seed=0,
+        world_seed=0,
         ):
         if name not in MineDojoEnvList:
             print(f'{name} not in env list. Aborted.')
@@ -53,6 +55,8 @@ class MineDojoEnv(gym.Env):
                 use_voxel = True,
                 custom_commands = ["/give @p minecraft:diamond_axe 1 0"],
                 force_slow_reset_interval = 2,
+                world_seed=world_seed,
+                seed=seed,
             )
         elif name == "Forest": 
             self._env = minedojo.make(
@@ -80,6 +84,8 @@ class MineDojoEnv(gym.Env):
                 use_voxel = True,
                 custom_commands = ["/give @p minecraft:diamond_axe 1 0"],
                 force_slow_reset_interval = 50,
+                world_seed=world_seed,
+                seed=seed,
             )
         else:
             assert False

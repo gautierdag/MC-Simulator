@@ -4,10 +4,9 @@ from ..sim import MineDojoSim
 from ...tasks.meta.func_utils import get_reward_fns, get_success_criteria
 from typing import Dict
 
+
 class MultiTaskWrapper(gym.Wrapper):
-    def __init__(self,
-                 env: MineDojoSim,
-                 task_specs: Dict):
+    def __init__(self, env: MineDojoSim, task_specs: Dict):
         super().__init__(env=env)
 
         self.task_specs = task_specs
@@ -60,13 +59,15 @@ class MultiTaskWrapper(gym.Wrapper):
             task["target_quantities"] = target_quantities
             task["reward_weights"] = reward_weights
             task["reward_fns"] = get_reward_fns(target_names, reward_weights)
-            task["success_criteria"] = get_success_criteria(target_names, target_quantities, max_nsteps)
+            task["success_criteria"] = get_success_criteria(
+                target_names, target_quantities, max_nsteps
+            )
 
             self.task_specs[task_name] = task
 
         self.curr_task_name = None
 
-    def reset(self, task_name = None):
+    def reset(self, task_name=None, seed=None):
         if task_name == None:
             task_name = self.task_names[0]
         else:
@@ -75,8 +76,9 @@ class MultiTaskWrapper(gym.Wrapper):
         self.curr_task_name = task_name
 
         obs = self.env.reset(
-            updated_reward_fns = self.task_specs[task_name]["reward_fns"],
-            updated_success_criteria = self.task_specs[task_name]["success_criteria"]
+            updated_reward_fns=self.task_specs[task_name]["reward_fns"],
+            updated_success_criteria=self.task_specs[task_name]["success_criteria"],
+            seed=seed,
         )
 
         # Execute custom commands

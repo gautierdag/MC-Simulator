@@ -13,6 +13,8 @@ Side effects:
 from __future__ import annotations
 
 import gym
+import math
+from copy import deepcopy
 
 from ..sim import MineDojoSim
 from ...sim.mc_meta.mc import MAX_FOOD, MAX_LIFE
@@ -26,10 +28,10 @@ class FastResetWrapper(gym.Wrapper):
         random_teleport_range: int | None = 1000,
         clear_ground: bool = True,
         kill_mobs: bool = True,
-        random_teleport_agent = True,
-        no_daylight_cycle = True,
-        custom_commands = None,
-        force_slow_reset_interval: int = 0
+        random_teleport_agent=True,
+        no_daylight_cycle=True,
+        custom_commands=None,
+        force_slow_reset_interval: int = 0,
     ):
         super().__init__(env=env)
         start_time, start_weather = env.start_time, env.initial_weather
@@ -46,10 +48,8 @@ class FastResetWrapper(gym.Wrapper):
 
         self.force_slow_reset_interval = force_slow_reset_interval
         self.reset_count = 0
-        
-        self._reset_cmds = [
-            "/kill"
-        ]
+
+        self._reset_cmds = ["/kill"]
         self._reset_cmds.extend(
             [f"/time set {start_time or 0}", f'/weather {start_weather or "normal"}']
         )
@@ -64,35 +64,52 @@ class FastResetWrapper(gym.Wrapper):
                 f'/tp {start_position["x"]} {start_position["y"]} {start_position["z"]} {start_position["yaw"]} {start_position["pitch"]}'
             )
         if kill_mobs:
-            self._reset_cmds.extend([
-                "/kill @e[type=!player]", f"/time set {start_time or 0}", f"/time set {start_time or 0}"
-            ])
+            self._reset_cmds.extend(
+                [
+                    "/kill @e[type=!player]",
+                    f"/time set {start_time or 0}",
+                    f"/time set {start_time or 0}",
+                ]
+            )
         if clear_ground:
             self._reset_cmds.append("/kill @e[type=item]")
-        if random_teleport_agent and random_teleport_range > 0:
-            self._reset_cmds.append(
-                f"/spreadplayers ~ ~ 0 {random_teleport_range} false @p"
-            )
+
+        self.random_teleport_range = random_teleport_range
+        self.random_teleport_agent = random_teleport_agent
+        # if random_teleport_agent and random_teleport_range > 0:
+        # self._reset_cmds.append(
+        #     f"/spreadplayers ~ ~ 0 {random_teleport_range} false @p"
+        # )
+
         if no_daylight_cycle:
-            self._reset_cmds.append(
-                "/gamerule doDaylightCycle false"
-            )
+            self._reset_cmds.append("/gamerule doDaylightCycle false")
 
         self._custom_commands = custom_commands
         if custom_commands is not None:
-            self._reset_cmds.extend(
-                custom_commands
-            )
+            self._reset_cmds.extend(custom_commands)
 
         self._server_start = False
         self._info_prev_reset = None
+        self._previous_start_location = None
+
+    def _calculate_random_offset(self, distance: int = 100):
+        """
+        Calculates a random position within the given range using the environment's seeded RNG.
+        """
+
+        # Sample an angle uniformly from 0 to 2*pi
+        angle = self.env._rng.uniform(0, 2 * math.pi)
+        # Convert polar coordinates to Cartesian coordinates
+        x_offset = int(distance * math.cos(angle))
+        y_offset = int(distance * math.sin(angle))
+        return x_offset, y_offset
 
     def reset(self, **kwargs):
         self.reset_count += 1
         if self.force_slow_reset_interval == 0:
             force_slow_reset = False
         else:
-            force_slow_reset = (self.reset_count % self.force_slow_reset_interval == 0)
+            force_slow_reset = self.reset_count % self.force_slow_reset_interval == 0
         if not self._server_start or force_slow_reset:
             self._server_start = True
             obs = self.env.reset(**kwargs)
@@ -100,10 +117,23 @@ class FastResetWrapper(gym.Wrapper):
                 for cmd in self._custom_commands:
                     obs, _, _, info = self.env.execute_cmd(cmd)
                 self._info_prev_reset = self.env.prev_info
+            self._previous_start_location = deepcopy(obs["location_stats"]["pos"])
             return obs
         else:
             for cmd in self._reset_cmds:
                 obs, _, _, info = self.env.execute_cmd(cmd)
+            # position = obs["gps"]
+
+            if self.random_teleport_agent and self.random_teleport_range > 0:
+                x_offset, z_offset = self._calculate_random_offset(
+                    self.random_teleport_range
+                )
+                x = self._previous_start_location[0] + x_offset
+                z = self._previous_start_location[2] + z_offset
+                print(f"Random teleport to {x}, {z}")
+                cmd = f"/spreadplayers {x} {z} 0 1 false @p"
+                obs, _, _, info = self.env.execute_cmd(cmd)
+            self._previous_start_location = deepcopy(obs["location_stats"]["pos"])
             self._info_prev_reset = self.env.prev_info
             return obs
 

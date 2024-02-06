@@ -27,7 +27,19 @@ class MineDojoEnv(gym.Env):
         seed=0,
         world_seed=0,
         fast_reset=True,
+        force_slow_reset_interval=0,
     ):
+        """
+        Args:
+            name: str, name of the environment
+            img_size: tuple, size of the image
+            rgb_only: bool, if True, only return rgb observation
+            seed: int, seed for the environment
+            world_seed: int, seed for the world
+            fast_reset: bool, if True, use fast reset
+            force_slow_reset_interval: int, force slow reset interval. when fast_reset is True,
+                                       this value is used to determine when to use slow reset
+        """
         if name not in MineDojoEnvList:
             print(f"{name} not in env list. Aborted.")
             assert False
@@ -55,7 +67,7 @@ class MineDojoEnv(gym.Env):
                 voxel_size=dict(xmin=-1, ymin=0, zmin=1, xmax=1, ymax=1, zmax=2),
                 use_voxel=True,
                 custom_commands=["/give @p minecraft:diamond_axe 1 0"],
-                force_slow_reset_interval=0,
+                force_slow_reset_interval=force_slow_reset_interval,
                 world_seed=world_seed,
                 seed=seed,
                 fast_reset=fast_reset,
@@ -123,7 +135,7 @@ class MineDojoEnv(gym.Env):
                 voxel_size=dict(xmin=-1, ymin=0, zmin=1, xmax=1, ymax=1, zmax=2),
                 use_voxel=True,
                 custom_commands=["/give @p minecraft:diamond_axe 1 0"],
-                force_slow_reset_interval=50,
+                force_slow_reset_interval=force_slow_reset_interval,
                 world_seed=world_seed,
                 seed=seed,
                 fast_reset=fast_reset,

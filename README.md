@@ -1,6 +1,5 @@
 **Building Open-Ended Embodied Agents with Internet-Scale Knowledge**
 
-
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [Reference](#reference)
@@ -8,7 +7,7 @@
 
 # Installation
 
-The code is developed upon [Minedojo](https://github.com/MineDojo/MineDojo) , which requires Python ≥ 3.9. We have tested on Ubuntu 20.04. **Please follow [this guide](https://docs.minedojo.org/sections/getting_started/install.html#prerequisites)** to install the prerequisites first, such as JDK 8 for running Minecraft backend. We highly recommend creating a new [Conda virtual env](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html) to isolate dependencies. 
+The code is developed upon [Minedojo](https://github.com/MineDojo/MineDojo) , which requires Python ≥ 3.9. We have tested on Ubuntu 20.04. **Please follow [this guide](https://docs.minedojo.org/sections/getting_started/install.html#prerequisites)** to install the prerequisites first, such as JDK 8 for running Minecraft backend. We highly recommend creating a new [Conda virtual env](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html) to isolate dependencies.
 
 Then install the simulator, run:
 
@@ -16,7 +15,6 @@ Then install the simulator, run:
 git clone https://github.com/CraftJarvis/MC-Simulator && cd MC-Simulator
 pip install -e .
 ```
-
 
 You can run the script below to verify the installation. It takes a while to compile the Java code for the first time. After that you should see a Minecraft window pop up, with the same gaming interface that human players receive. You should see the message `[INFO] Installation Success` if everything goes well.
 
@@ -32,10 +30,9 @@ xvfb-run python minedojo/scripts/validate_install.py
 MINEDOJO_HEADLESS=1 python minedojo/scripts/validate_install.py
 ```
 
-
 # Getting Started
 
-MineDojo provides a [Gym-style](https://www.gymlibrary.ml/) interface for developing embodied agents that interact with the simulator in a loop.  Here is a very simple code snippet of a hardcoded agent that runs forward and jumps every 10 steps in the "Harvest Wool" task: 
+MineDojo provides a [Gym-style](https://www.gymlibrary.ml/) interface for developing embodied agents that interact with the simulator in a loop.  Here is a very simple code snippet of a hardcoded agent that runs forward and jumps every 10 steps in the "Harvest Wool" task:
 
 ```python
 import minedojo
@@ -60,7 +57,7 @@ MineDojo can be extensively customized to be tailored to your research needs. Pl
 
 # Reference
 
-The simulator is developed upon [Minedojo](https://arxiv.org/abs/2206.08853). If you find the simulator useful, please consider citing minedojo. 
+The simulator is developed upon [Minedojo](https://arxiv.org/abs/2206.08853). If you find the simulator useful, please consider citing minedojo.
 
 ```bibtex
 @article{fan2022minedojo,

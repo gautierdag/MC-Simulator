@@ -122,8 +122,6 @@ class FastResetWrapper(gym.Wrapper):
         else:
             for cmd in self._reset_cmds:
                 obs, _, _, info = self.env.execute_cmd(cmd)
-            # position = obs["gps"]
-
             if self.random_teleport_agent and self.random_teleport_range > 0:
                 x_offset, z_offset = self._calculate_random_offset(
                     self.random_teleport_range

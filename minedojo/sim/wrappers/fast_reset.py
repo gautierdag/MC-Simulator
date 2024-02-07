@@ -15,10 +15,13 @@ from __future__ import annotations
 import gym
 import math
 from copy import deepcopy
+import logging
 
 from ..sim import MineDojoSim
 from ...sim.mc_meta.mc import MAX_FOOD, MAX_LIFE
 from ..inventory import parse_inventory_item, map_slot_number_to_cmd_slot
+
+logger = logging.getLogger(__name__)
 
 
 class FastResetWrapper(gym.Wrapper):
@@ -76,10 +79,6 @@ class FastResetWrapper(gym.Wrapper):
 
         self.random_teleport_range = random_teleport_range
         self.random_teleport_agent = random_teleport_agent
-        # if random_teleport_agent and random_teleport_range > 0:
-        # self._reset_cmds.append(
-        #     f"/spreadplayers ~ ~ 0 {random_teleport_range} false @p"
-        # )
 
         if no_daylight_cycle:
             self._reset_cmds.append("/gamerule doDaylightCycle false")
@@ -117,7 +116,8 @@ class FastResetWrapper(gym.Wrapper):
                 for cmd in self._custom_commands:
                     obs, _, _, info = self.env.execute_cmd(cmd)
                 self._info_prev_reset = self.env.prev_info
-            self._previous_start_location = deepcopy(obs["location_stats"]["pos"])
+            self._previous_x = obs["location_stats"]["pos"][0]
+            self._previous_z = obs["location_stats"]["pos"][2]
             return obs
         else:
             for cmd in self._reset_cmds:
@@ -126,12 +126,18 @@ class FastResetWrapper(gym.Wrapper):
                 x_offset, z_offset = self._calculate_random_offset(
                     self.random_teleport_range
                 )
-                x = self._previous_start_location[0] + x_offset
-                z = self._previous_start_location[2] + z_offset
-                print(f"Random teleport to {x}, {z}")
+                x = self._previous_x + x_offset
+                z = self._previous_z + z_offset
+
+                logger.debug(f"Random teleport to {x}, {z}")
                 cmd = f"/spreadplayers {x} {z} 0 1 false @p"
+
+                # Save the new target position
+                self._previous_x = x
+                self._previous_z = z
+
+                # Execute the command
                 obs, _, _, info = self.env.execute_cmd(cmd)
-            self._previous_start_location = deepcopy(obs["location_stats"]["pos"])
             self._info_prev_reset = self.env.prev_info
             return obs
 

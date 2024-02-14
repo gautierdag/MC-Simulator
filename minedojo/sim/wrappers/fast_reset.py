@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import gym
 import math
-from copy import deepcopy
 import logging
 
 from ..sim import MineDojoSim
@@ -49,8 +48,8 @@ class FastResetWrapper(gym.Wrapper):
         if random_teleport_range is None:
             random_teleport_range = 200
 
-        self.force_slow_reset_interval = force_slow_reset_interval
         self.reset_count = 0
+        self.force_slow_reset_interval = force_slow_reset_interval
 
         self._reset_cmds = ["/kill"]
         self._reset_cmds.extend(
@@ -103,13 +102,10 @@ class FastResetWrapper(gym.Wrapper):
         y_offset = int(distance * math.sin(angle))
         return x_offset, y_offset
 
-    def reset(self, **kwargs):
-        self.reset_count += 1
-        if self.force_slow_reset_interval == 0:
-            force_slow_reset = False
-        else:
-            force_slow_reset = self.reset_count % self.force_slow_reset_interval == 0
-        if not self._server_start or force_slow_reset:
+    def reset(self, **kwargs):      
+        if not self._server_start or self.reset_count > self.force_slow_reset_interval:
+            logger.info(f"server start: {self._server_start} | Force slow reset interval: {self.force_slow_reset_interval}")
+            self.reset_count = 1
             self._server_start = True
             obs = self.env.reset(**kwargs)
             if self._custom_commands is not None:
@@ -118,28 +114,30 @@ class FastResetWrapper(gym.Wrapper):
                 self._info_prev_reset = self.env.prev_info
             self._previous_x = obs["location_stats"]["pos"][0]
             self._previous_z = obs["location_stats"]["pos"][2]
+            logger.info(f"Start Position @ {self._previous_x}, {self._previous_z}")
             return obs
-        else:
-            for cmd in self._reset_cmds:
-                obs, _, _, info = self.env.execute_cmd(cmd)
-            if self.random_teleport_agent and self.random_teleport_range > 0:
-                x_offset, z_offset = self._calculate_random_offset(
-                    self.random_teleport_range
-                )
-                x = self._previous_x + x_offset
-                z = self._previous_z + z_offset
+        
+        for cmd in self._reset_cmds:
+            obs, _, _, info = self.env.execute_cmd(cmd)
+        if self.random_teleport_agent and self.random_teleport_range > 0:
+            x_offset, z_offset = self._calculate_random_offset(
+                self.random_teleport_range
+            )
+            x = self._previous_x + x_offset
+            z = self._previous_z + z_offset
 
-                logger.debug(f"Random teleport to {x}, {z}")
-                cmd = f"/spreadplayers {x} {z} 0 1 false @p"
+            logger.info(f"Random teleport to {x}, {z} due to offset {x_offset}, {z_offset}")
+            cmd = f"/spreadplayers {x} {z} 0 1 false @p"
 
-                # Save the new target position
-                self._previous_x = x
-                self._previous_z = z
+            # Save the new target position
+            self._previous_x = x
+            self._previous_z = z
 
-                # Execute the command
-                obs, _, _, info = self.env.execute_cmd(cmd)
-            self._info_prev_reset = self.env.prev_info
-            return obs
+            # Execute the command
+            obs, _, _, info = self.env.execute_cmd(cmd)
+        self._info_prev_reset = self.env.prev_info
+        self.reset_count += 1  
+        return obs
 
     def step(self, action):
         obs, r, d, info = self.env.step(action)

@@ -69,7 +69,7 @@ class MetaTaskBase(gym.Wrapper):
         sim = MineDojoSim(**kwargs)
         self._fast_reset = fast_reset
         if fast_reset:
-            print(f"[INFO] Using fast reset: {fast_reset_random_teleport_range}")
+            print(f"[INFO] Using fast reset with teleport range: {fast_reset_random_teleport_range}")
             sim = FastResetWrapper(
                 sim,
                 random_teleport_range=fast_reset_random_teleport_range,

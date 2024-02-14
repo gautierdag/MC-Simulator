@@ -20,7 +20,7 @@ from .meta import (
 import logging
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.INFO)
+_logger.setLevel(logging.DEBUG)
 _stream_handler = logging.StreamHandler(stream=sys.stderr)
 _stream_handler.setFormatter(logging.Formatter("[%(levelname)s:%(name)s] %(message)s"))
 _logger.addHandler(_stream_handler)
